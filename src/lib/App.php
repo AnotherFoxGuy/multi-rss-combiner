@@ -10,6 +10,7 @@ use MultiRssCombiner\Provider\RssCache as RssCacheProvider;
 use MultiRssCombiner\Renderer\PageRenderer;
 use MultiRssCombiner\Renderer\RssRenderer;
 use MultiRssCombiner\Value\Item;
+use SimplePie;
 use Wolfcast\BrowserDetection;
 
 class App
@@ -21,6 +22,8 @@ class App
     public const APP_PUBLIC_FILES_DIR = '/public/';
 
     public const APP_CHANNEL_CONFIGURATION_PATH = '/config/';
+
+    public const NAMESPACE_MRSS = 'http://search.yahoo.com/mrss/';
 
     public function buildView(bool $showDefault = true): void
     {
@@ -47,7 +50,7 @@ class App
     {
         $channels = new ChannelConfiguration(self::APP_CHANNEL_CONFIGURATION_PATH);
 
-        $feed = new \SimplePie();
+        $feed = new SimplePie\SimplePie();
         $feed->enable_order_by_date(true);
         $feed->force_feed(true);
         $feed->enable_cache(false);
@@ -73,16 +76,23 @@ class App
             foreach ($feedItems as $item) {
                 $date = new \DateTime($item->get_date());
 
-                $image = '';
-                if (null !== $item->get_content()) {
-                    $image = $this->getFirstImage($item->get_content());
-                }
+                if (str_contains($item->get_id(), "yt:video:")) {
+                    // Stupid yt feed handling
+                    $image = $item->data["child"]["http://search.yahoo.com/mrss/"]["group"][0]["child"]["http://search.yahoo.com/mrss/"]["thumbnail"][0]["attribs"][""]["url"];
+                    $description = $item->data["child"]["http://search.yahoo.com/mrss/"]["group"][0]["child"]["http://search.yahoo.com/mrss/"]["description"][0]["data"];
+                    $description = htmlspecialchars(nl2br($description));
+                } else {
+                    $image = '';
+                    if (null !== $item->get_content()) {
+                        $image = $this->getFirstImage($item->get_content());
+                    }
 
-                $description = $item->get_description();
-                if (null !== $description) {
-                    $description = preg_replace('/<img[^>]+\>/i', '', $description);
-                }
+                    $description = $item->get_description();
+                    if (null !== $description) {
+                        $description = preg_replace('/<img[^>]+\>/i', '', $description);
+                    }
 
+                }
                 $item = new Item(
                     $channel->getName(),
                     $item->get_title() ?? '',
@@ -93,13 +103,15 @@ class App
                     $date
                 );
 
+
                 $items[] = $item;
             }
         }
 
         // reorder items
         usort($items, function ($a, $b) {
-            return $b->getPubDate() <=> $a->getPubDate();
+            //return $b->getPubDate() <=> $a->getPubDate();
+            return $a->getPubDate() > $b->getPubDate() ? -1 : 1;
         });
 
         // store everything in cache

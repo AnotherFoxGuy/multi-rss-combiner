@@ -37,10 +37,16 @@ class RssCache implements CacheProvider
 
             $date = new \DateTime($item['pubDate']);
 
+            if (gettype($item['description']) == "array"){
+                $description = '';
+            }else{
+                $description = $item['description'];
+            }
+
             $this->cache[] = new Item(
                 $item['channelName'],
                 $item['title'],
-                $item['description'],
+                $description,
                 $item['link'],
                 $item['guid'],
                 \is_array($item['image']) ? null : $item['image'],

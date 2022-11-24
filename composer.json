@@ -16,7 +16,8 @@
     "ext-json": "*",
     "ext-libxml": "*",
     "wolfcast/browser-detection": "^2.9",
-    "simplepie/simplepie": "^1.5"
+    "simplepie/simplepie": "^1.5",
+    "ext-dom": "*"
   },
   "autoload": {
     "psr-4": {
